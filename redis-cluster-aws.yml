@@ -37,6 +37,7 @@ spec:
   ports:
   - port: 6379
     targetPort: 6379
+    nodePort: 31515
     name: client
   - port: 16379
     targetPort: 16379
