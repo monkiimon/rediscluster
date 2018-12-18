@@ -34,6 +34,7 @@ metadata:
   labels:
     app: redis-cluster
 spec:
+  type: NodePort
   ports:
   - port: 6379
     targetPort: 6379
