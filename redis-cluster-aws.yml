@@ -34,30 +34,28 @@ metadata:
   labels:
     app: redis-cluster
 spec:
-  externalTrafficPolicy: Local
+  type: NodePort
   ports:
-  - nodePort: 33335
-    port: 6379
-    protocol: TCP
+  - port: 6379
     targetPort: 6379
+    nodePort: 32020
     name: client
   - port: 16379
     targetPort: 16379
     name: gossip
-  clusterIP: None
   selector:
     app: redis-cluster
 ---
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
-  name: standard-aws-ebs   # Users request a particular Storage class - So the name of the StorageClass is significant
-provisioner: kubernetes.io/aws-ebs  # Provisioner determines the volume plugin used for provisioning PVs
+  name: standard-aws-ebs # Users request a particular Storage class - So the name of the StorageClass is significant
+provisioner: kubernetes.io/aws-ebs # Provisioner determines the volume plugin used for provisioning PVs
 # A general purpose SSD backed Volume Type in AWS EBS
 # Refer: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumeTypes.html
 parameters:
   type: gp2
-reclaimPolicy: Delete  
+reclaimPolicy: Delete
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -77,55 +75,55 @@ spec:
         app: redis-cluster
     spec:
       containers:
-      - name: redis
-        image: redis:latest
-        ports:
-        - containerPort: 6379
-          name: client
-        - containerPort: 16379
-          name: gossip
-        command: ["/conf/fix-ip.sh", "redis-server", "/conf/redis.conf"]
-        readinessProbe:
-          exec:
-            command:
-            - sh
-            - -c
-            - "redis-cli -h $(hostname) ping"
-          initialDelaySeconds: 15
-          timeoutSeconds: 5
-        livenessProbe:
-          exec:
-            command:
-            - sh
-            - -c
-            - "redis-cli -h $(hostname) ping"
-          initialDelaySeconds: 20
-          periodSeconds: 3
-        env:
-        - name: POD_IP
-          valueFrom:
-            fieldRef:
-              fieldPath: status.podIP
-        volumeMounts:
-        - name: conf
-          mountPath: /conf
-          readOnly: false
-        - name: data
-          mountPath: /data
-          readOnly: false
+        - name: redis
+          image: redis:latest
+          ports:
+            - containerPort: 6379
+              name: client
+            - containerPort: 16379
+              name: gossip
+          command: ['/conf/fix-ip.sh', 'redis-server', '/conf/redis.conf']
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - 'redis-cli -h $(hostname) ping'
+            initialDelaySeconds: 15
+            timeoutSeconds: 5
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - 'redis-cli -h $(hostname) ping'
+            initialDelaySeconds: 20
+            periodSeconds: 3
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          volumeMounts:
+            - name: conf
+              mountPath: /conf
+              readOnly: false
+            - name: data
+              mountPath: /data
+              readOnly: false
       volumes:
-      - name: conf
-        configMap:
-          name: redis-cluster
-          defaultMode: 0755
+        - name: conf
+          configMap:
+            name: redis-cluster
+            defaultMode: 0755
   volumeClaimTemplates:
-  - metadata:
-      name: data
-      labels:
-        name: redis-cluster
-    spec:
-      accessModes: [ "ReadWriteOnce" ]
-      storageClassName: standard-aws-ebs  # This name must match the AWS Storage Class
-      resources:
-        requests:
-          storage: 1Gi
+    - metadata:
+        name: data
+        labels:
+          name: redis-cluster
+      spec:
+        accessModes: ['ReadWriteOnce']
+        storageClassName: standard-aws-ebs # This name must match the AWS Storage Class
+        resources:
+          requests:
+            storage: 1Gi

@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: node-react-webpack-hello-world
+  name: node-react-webpack-hello-world
+  namespace: default
+spec:
+  ports:
+    - nodePort: 30099
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+  type: NodePort
+  selector:
+    app: aaa
